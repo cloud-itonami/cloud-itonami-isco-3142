@@ -42,10 +42,10 @@ Full itonami Actor pattern (per ADR-2607011000 / CLAUDE.md's Actors section): a 
                                           +-> :hold               (:hard? true)
 ```
 
-- `src/agri_technician/store.cljc` — `Store` protocol + `MemStore`: registered technicians, farms, technical records, an append-only audit ledger.
-- `src/agri_technician/advisor.cljc` — `Advisor` protocol; `mock-advisor` (deterministic, default) proposes a technical action from a request; `llm-advisor` wraps a `langchain.model/ChatModel` — either way the advisor only ever produces a `:propose`-effect proposal, never a committed record, and LLM parse failures always yield `:confidence 0.0` (forces escalation, never fabricated confidence).
-- `src/agri_technician/governor.cljc` — `TechnicianGovernor/check`: a pure function, wired as its own `:govern` node. Hard invariants (unregistered technician, unregistered farm, a proposal whose `:effect` isn't `:propose`) always route to `:hold`. Escalation invariants (`:flag-pest-disease-risk`, or low advisor confidence) always route to `:request-approval` — an `interrupt-before` node that the graph checkpoints and only resumes on explicit human approval (`actor/approve!`), matching the premise that pest/disease risks always require human sign-off.
-- `src/agri_technician/actor.cljc` — `build-graph`, `run-request!`, `approve!`: the `langgraph.graph/state-graph` wiring itself.
+- `src/agri_technician/store.kotoba` — `Store` protocol + `MemStore`: registered technicians, farms, technical records, an append-only audit ledger.
+- `src/agri_technician/advisor.kotoba` — `Advisor` protocol; `mock-advisor` (deterministic, default) proposes a technical action from a request; `llm-advisor` wraps a `langchain.model/ChatModel` — either way the advisor only ever produces a `:propose`-effect proposal, never a committed record, and LLM parse failures always yield `:confidence 0.0` (forces escalation, never fabricated confidence).
+- `src/agri_technician/governor.kotoba` — `TechnicianGovernor/check`: a pure function, wired as its own `:govern` node. Hard invariants (unregistered technician, unregistered farm, a proposal whose `:effect` isn't `:propose`) always route to `:hold`. Escalation invariants (`:flag-pest-disease-risk`, or low advisor confidence) always route to `:request-approval` — an `interrupt-before` node that the graph checkpoints and only resumes on explicit human approval (`actor/approve!`), matching the premise that pest/disease risks always require human sign-off.
+- `src/agri_technician/actor.kotoba` — `build-graph`, `run-request!`, `approve!`: the `langgraph.graph/state-graph` wiring itself.
 
 ```bash
 clojure -M:test
