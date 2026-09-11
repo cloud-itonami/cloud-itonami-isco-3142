@@ -48,7 +48,7 @@ Full itonami Actor pattern (per ADR-2607011000 / CLAUDE.md's Actors section): a 
 - `src/agri_technician/actor.kotoba` — `build-graph`, `run-request!`, `approve!`: the `langgraph.graph/state-graph` wiring itself.
 
 ```bash
-clojure -M:test
+kbb -M:test
 ```
 
 This is what backs this repo's `:maturity :implemented` entry in [`kotoba-lang/occupation`](https://github.com/kotoba-lang/occupation).
