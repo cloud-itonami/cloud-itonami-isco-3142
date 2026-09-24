@@ -58,3 +58,18 @@
     (is (= :done (:status result)))
     (is (some? (get-in result [:state :record])))
     (is (= 1 (count (store/records-of st "farm-1"))))))
+
+(deftest end-to-end-hold-on-op-outside-the-catalog
+  ;; The mock advisor passes the request's op through, as an LLM would pass
+  ;; through whatever it wrote. Before agri-technician.operations this run
+  ;; committed an :apply-pesticide record without any human sign-off.
+  (let [st (fresh-store)
+        graph (actor/build-graph {:store st})
+        result (actor/run-request! graph {:technician-id "tech-1" :farm-id "farm-1"
+                                          :op :apply-pesticide :stake :low}
+                                   {} "thread-6")]
+    (is (= :done (:status result)))
+    (is (empty? (store/records-of st "farm-1")))
+    (is (= :hold (:disposition (last (store/ledger st)))))
+    (is (= [:unknown-op]
+           (mapv :rule (:violations (:verdict (last (store/ledger st)))))))))

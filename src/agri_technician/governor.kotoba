@@ -19,11 +19,16 @@
     2. farm provenance         — the request's farm must be registered
                                 and supervised by the technician.
     3. no-actuation            — proposal :effect must be :propose.
+    4. closed vocabulary       — an `:op` that `agri-technician.operations`
+                                does not permit is refused (`:unknown-op`),
+                                including the `:unknown` the advisor emits
+                                for an unreadable LLM reply.
   ESCALATION invariants (:escalate? true, ALWAYS human sign-off, per
   the premise that pest/disease risks always require human sign-off):
-    4. :op :flag-pest-disease-risk (always escalates).
-    5. low confidence (< `confidence-floor`)."
-  (:require [agri-technician.store :as store]))
+    5. :op :flag-pest-disease-risk (always escalates).
+    6. low confidence (< `confidence-floor`)."
+  (:require [agri-technician.store :as store]
+            [agri-technician.operations :as operations]))
 
 (def confidence-floor 0.6)
 (def ^:private escalating-ops #{:flag-pest-disease-risk})
@@ -37,7 +42,10 @@
     (conj {:rule :no-farm :detail "unregistered farm or farm not supervised by technician"})
 
     (not= :propose (:effect proposal))
-    (conj {:rule :no-actuation :detail "effect は :propose のみ許可（直接書込禁止）"})))
+    (conj {:rule :no-actuation :detail "effect は :propose のみ許可（直接書込禁止）"})
+
+    (operations/unknown? (:op proposal))
+    (conj {:rule :unknown-op :detail (str "op " (pr-str (:op proposal)) " is not in agri-technician.operations")})))
 
 (defn check
   "Assess a proposal against `request`/`context`/`proposal` and a
