@@ -1,0 +1,47 @@
+(ns agri-technician.facts
+  "Recognized soil test methods a `:run-test-protocol` proposal may name.
+
+  Before this catalog a `:run-test-protocol` proposal needed no method at
+  all: `{:op :run-test-protocol :effect :propose :confidence 0.9}` for a
+  verified technician's supervised farm committed a test-protocol record
+  that said nothing about how the soil was tested, so the result could not
+  be compared with any other laboratory's or reproduced. The governor now
+  escalates such a proposal (`:unrecognized-method`) to a human, who can
+  sign off on a method this catalog does not yet list.
+
+  Every entry is a harmonized Standard Operating Procedure of FAO's Global
+  Soil Laboratory Network (GLOSOLAN). Each `:url` was fetched on
+  `:fetched` and returned HTTP 200 with a PDF whose own text carries the
+  `:title` and `:code` written here; nothing is paraphrased from memory.
+  Standards behind a bot challenge (iso.org answered 403 with a challenge
+  page on the same day) are not cited, because they could not be read.")
+
+(def test-methods
+  "method keyword -> citation."
+  {:glosolan-sop-01
+   {:code "GLOSOLAN-SOP-01"
+    :title "Standard operating procedure for handling and preparation of soil samples for chemical and physical analyses"
+    :url "https://openknowledge.fao.org/server/api/core/bitstreams/22390d4e-01e3-4188-a416-041beb9f918f/content"
+    :fetched "2026-09-24"}
+   :glosolan-sop-06
+   {:code "GLOSOLAN-SOP-06"
+    :title "Standard operating procedure for soil pH determination"
+    :url "https://openknowledge.fao.org/server/api/core/bitstreams/6ad6862a-eadc-437c-b359-ef14cb687222/content"
+    :fetched "2026-09-24"}
+   :glosolan-sop-10
+   {:code "GLOSOLAN-SOP-10"
+    :title "Standard operating procedure for soil available phosphorus - Olsen method"
+    :url "https://openknowledge.fao.org/server/api/core/bitstreams/d69a78fc-3ccd-4a9d-a77a-7e729be66c4a/content"
+    :fetched "2026-09-24"}
+   :glosolan-sop-11
+   {:code "GLOSOLAN-SOP-11"
+    :title "Standard operating procedure for soil available phosphorus - Mehlich I method"
+    :url "https://openknowledge.fao.org/server/api/core/bitstreams/d6504b9a-6dfc-4479-8ec1-048cb2287505/content"
+    :fetched "2026-09-24"}
+   :glosolan-sop-14
+   {:code "GLOSOLAN-SOP-14"
+    :title "Standard operating procedure for soil nitrogen - Kjeldahl method"
+    :url "https://openknowledge.fao.org/server/api/core/bitstreams/17a0e476-f796-4608-a869-295a367c0b56/content"
+    :fetched "2026-09-24"}})
+
+(defn recognized-method? [method] (contains? test-methods method))

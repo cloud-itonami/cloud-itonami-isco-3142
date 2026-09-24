@@ -12,6 +12,7 @@
   A proposal is a map:
     {:op :log-site-assessment|:run-test-protocol|:flag-pest-disease-risk|:schedule-site-visit
      :effect :propose        ; the advisor NEVER emits a raw store write
+     :method kw              ; for :run-test-protocol, a key of agri-technician.facts/test-methods
      :stake :low|:medium|:high
      :confidence 0.0-1.0
      :rationale str}
@@ -29,8 +30,9 @@
   "Deterministic mock inference: reads the request's declared op/stake
   straight through (a stand-in for what an LLM would extract from free
   text), with a stake-derived confidence."
-  [_store {:keys [op stake] :as request}]
+  [_store {:keys [op stake method] :as request}]
   {:op op
+   :method method
    :effect :propose
    :stake (or stake :low)
    :confidence (case (or stake :low) :high 0.7 :medium 0.85 :low 0.95)
@@ -43,7 +45,9 @@
 (def ^:private system-prompt
   "You are an agricultural technician. Given a technical field request,
    propose an :op, an honest :confidence (0.0-1.0), and a :stake
-   (:low/:medium/:high). Never fabricate confidence you don't have.")
+   (:low/:medium/:high). For :run-test-protocol also give the :method, a
+   GLOSOLAN SOP keyword such as :glosolan-sop-06. Never fabricate confidence
+   you don't have.")
 
 (defn- parse-proposal [content]
   (try

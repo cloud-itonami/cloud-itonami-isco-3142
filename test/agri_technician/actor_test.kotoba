@@ -44,7 +44,7 @@
 (deftest commits-high-confidence-test-protocol
   (let [st (fresh-store)
         graph (actor/build-graph {:store st})
-        request {:technician-id "tech-1" :farm-id "farm-1" :op :run-test-protocol :stake :medium}
+        request {:technician-id "tech-1" :farm-id "farm-1" :op :run-test-protocol :method :glosolan-sop-14 :stake :medium}
         result (actor/run-request! graph request {} "thread-4")]
     (is (= :done (:status result)))
     (is (some? (get-in result [:state :record])))
@@ -73,3 +73,13 @@
     (is (= :hold (:disposition (last (store/ledger st)))))
     (is (= [:unknown-op]
            (mapv :rule (:violations (:verdict (last (store/ledger st)))))))))
+
+(deftest interrupts-test-protocol-that-names-no-method
+  (let [st (fresh-store)
+        graph (actor/build-graph {:store st})
+        request {:technician-id "tech-1" :farm-id "farm-1" :op :run-test-protocol :stake :low}
+        result (actor/run-request! graph request {} "thread-9")]
+    (is (= :interrupted (:status result)))
+    (is (empty? (store/records-of st "farm-1")))
+    (is (= [:unrecognized-method]
+           (mapv :rule (:escalations (get-in result [:state :verdict])))))))
