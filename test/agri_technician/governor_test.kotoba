@@ -2,7 +2,9 @@
   (:require [clojure.test :refer [deftest is testing]]
             [agri-technician.store :as store]
             [agri-technician.governor :as governor]
-            [agri-technician.operations :as operations]))
+            [agri-technician.operations :as operations]
+            [agri-technician.facts :as facts]
+            [kotoba.lang.text :as text]))
 
 (defn- fresh-store []
   (let [st (store/mem-store)]
@@ -57,9 +59,10 @@
 
 (deftest ok-on-test-protocol-execution
   (let [st (fresh-store)
-        proposal {:op :run-test-protocol :effect :propose :confidence 0.9 :stake :medium}
+        proposal {:op :run-test-protocol :method :glosolan-sop-06 :effect :propose :confidence 0.9 :stake :medium}
         v (governor/check {:technician-id "tech-1" :farm-id "farm-1"} {} proposal st)]
     (is (:ok? v))
+    (is (empty? (:escalations v)))
     (is (not (:hard? v)))
     (is (not (:escalate? v)))))
 
@@ -73,7 +76,7 @@
 
 (deftest escalates-on-low-confidence
   (let [st (fresh-store)
-        proposal {:op :run-test-protocol :effect :propose :confidence 0.2 :stake :medium}
+        proposal {:op :run-test-protocol :method :glosolan-sop-06 :effect :propose :confidence 0.2 :stake :medium}
         v (governor/check {:technician-id "tech-1" :farm-id "farm-1"} {} proposal st)]
     (is (:escalate? v))
     (is (not (:hard? v)))))
@@ -123,3 +126,32 @@
   ;; fails.
   (is (= #{:log-site-assessment :run-test-protocol :flag-pest-disease-risk :schedule-site-visit}
          (set (keys operations/permitted)))))
+
+(deftest escalates-test-protocol-without-a-recognized-method
+  ;; Before agri-technician.facts this proposal committed a test-protocol
+  ;; record that named no method. It now goes to a human, and says why.
+  (let [st (fresh-store)]
+    (doseq [method [nil :made-up-sop-99]]
+      (let [v (governor/check {:technician-id "tech-1" :farm-id "farm-1"} {}
+                              {:op :run-test-protocol :method method :effect :propose
+                               :confidence 0.95 :stake :low} st)]
+        (is (not (:ok? v)) (str method " was accepted"))
+        (is (not (:hard? v)))
+        (is (:escalate? v))
+        (is (= [:unrecognized-method] (mapv :rule (:escalations v))))))))
+
+(deftest method-rule-only-applies-to-test-protocols
+  (let [st (fresh-store)
+        v (governor/check {:technician-id "tech-1" :farm-id "farm-1"} {}
+                          {:op :log-site-assessment :effect :propose :confidence 0.9 :stake :low} st)]
+    (is (:ok? v))
+    (is (empty? (:escalations v)))))
+
+(deftest every-cited-method-is-recognized-and-sourced
+  (is (= 5 (count facts/test-methods)))
+  (doseq [[k {:keys [code title url fetched]}] facts/test-methods]
+    (is (facts/recognized-method? k))
+    (is (= (name k) (text/lower code)) (str k " does not match its code " code))
+    (is (seq title))
+    (is (text/starts-with? url "https://openknowledge.fao.org/") (str k " " url))
+    (is (= "2026-09-24" fetched))))

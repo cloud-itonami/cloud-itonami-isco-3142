@@ -26,9 +26,13 @@
   ESCALATION invariants (:escalate? true, ALWAYS human sign-off, per
   the premise that pest/disease risks always require human sign-off):
     5. :op :flag-pest-disease-risk (always escalates).
-    6. low confidence (< `confidence-floor`)."
+    6. low confidence (< `confidence-floor`).
+    7. `:run-test-protocol` whose `:method` is not in
+       `agri-technician.facts/test-methods` (`:unrecognized-method`,
+       reported under `:escalations`) — including no `:method` at all."
   (:require [agri-technician.store :as store]
-            [agri-technician.operations :as operations]))
+            [agri-technician.operations :as operations]
+            [agri-technician.facts :as facts]))
 
 (def confidence-floor 0.6)
 (def ^:private escalating-ops #{:flag-pest-disease-risk})
@@ -47,10 +51,17 @@
     (operations/unknown? (:op proposal))
     (conj {:rule :unknown-op :detail (str "op " (pr-str (:op proposal)) " is not in agri-technician.operations")})))
 
+(defn- escalation-reasons [proposal]
+  (cond-> []
+    (and (= :run-test-protocol (:op proposal))
+         (not (facts/recognized-method? (:method proposal))))
+    (conj {:rule :unrecognized-method
+           :detail (str "method " (pr-str (:method proposal)) " is not in agri-technician.facts")})))
+
 (defn check
   "Assess a proposal against `request`/`context`/`proposal` and a
   `store` implementing `agri-technician.store/Store`. Returns
-  `{:ok? bool :violations [...] :confidence n :hard? bool :escalate? bool}`."
+  `{:ok? bool :violations [...] :escalations [...] :confidence n :hard? bool :escalate? bool}`."
   [request context proposal store]
   (let [technician-record (store/technician-by-id store (:technician-id request))
         farm-record (store/farm-by-id store (:farm-id request))
@@ -58,9 +69,11 @@
         hard? (boolean (seq hard))
         conf (or (:confidence proposal) 0.0)
         low? (< conf confidence-floor)
-        risky-op? (contains? escalating-ops (:op proposal))]
-    {:ok? (and (not hard?) (not low?) (not risky-op?))
+        risky-op? (contains? escalating-ops (:op proposal))
+        esc (escalation-reasons proposal)]
+    {:ok? (and (not hard?) (not low?) (not risky-op?) (empty? esc))
      :violations hard
+     :escalations esc
      :confidence conf
      :hard? hard?
-     :escalate? (and (not hard?) (or low? risky-op?))}))
+     :escalate? (and (not hard?) (or low? risky-op? (boolean (seq esc))))}))
