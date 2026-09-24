@@ -15,8 +15,9 @@
      :stake :low|:medium|:high
      :confidence 0.0-1.0
      :rationale str}
-  LLM parse failures always yield `:confidence 0.0` (never fabricate
-  confidence), which forces the governor to escalate/hold."
+  LLM parse failures always yield `{:op :unknown :confidence 0.0}` (never
+  fabricate confidence); `:unknown` is outside `agri-technician.operations`,
+  so the governor holds it."
   (:require [kotoba.lang.text :as str]
             #?(:clj  [clojure.edn :as edn]
                :cljs [cljs.reader :as edn])))
